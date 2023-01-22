@@ -9,11 +9,9 @@ provider:
 functions:
   rateHandler:
     handler: handler.run
-    # memory
     memorySize: 256
     events:
-      # Invoke Lambda function every minute
-      - schedule: rate(1 minute)
+      - schedule: rate(1 day)
 
 plugins:
   - serverless-python-requirements
