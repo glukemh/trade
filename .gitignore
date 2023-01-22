@@ -1,0 +1,8 @@
+.serverless
+*.pyc
+*.pyo
+pyvenv.cfg
+node_modules
+bin
+include
+lib
