@@ -1,7 +1,6 @@
 service: trade
 
-frameworkVersion: '3'
-
+frameworkVersion: "3"
 
 provider:
   name: aws
@@ -10,14 +9,11 @@ provider:
 functions:
   rateHandler:
     handler: handler.run
+    # memory
+    memorySize: 256
     events:
       # Invoke Lambda function every minute
       - schedule: rate(1 minute)
-  cronHandler:
-    handler: handler.run
-    events:
-      # Invoke Lambda function every 2nd minute from Mon-Fri
-      - schedule: cron(0/2 * ? * MON-FRI *)
 
 plugins:
   - serverless-python-requirements
