@@ -54,8 +54,7 @@ print(supertrend(7, 200, '1h', 2))
 
 
 def run(event, context):
-    # TODO implement
     return {
         'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
+        'body': json.dumps(str(supertrend(7, 200, '1h', 2)))
     }
