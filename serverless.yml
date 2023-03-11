@@ -16,11 +16,16 @@ provider:
           Resource: "arn:aws:s3:::trade-store"
 
 functions:
-  rateHandler:
-    handler: handler.run
-    memorySize: 256
+  tradePerHour:
+    handler: handler.run_per_1h
+    memorySize: 512
     events:
-      - schedule: rate(1 day)
+      - schedule: rate(1 hour)
+  tradePerMinute:
+    handler: handler.run_per_1m
+    memorySize: 512
+    events:
+      - schedule: rate(1 minute)
 
 plugins:
   - serverless-python-requirements
