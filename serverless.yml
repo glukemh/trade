@@ -5,6 +5,15 @@ frameworkVersion: "3"
 provider:
   name: aws
   runtime: python3.8
+  iam:
+    role:
+      statements:
+        # Allow functions to read/write objects in a bucket
+        - Effect: Allow
+          Action:
+            - "s3:GetObject"
+            - "s3:PutObject"
+          Resource: "arn:aws:s3:::trade-store"
 
 functions:
   rateHandler:
