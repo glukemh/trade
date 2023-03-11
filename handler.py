@@ -1,11 +1,127 @@
 import ccxt
 import json
 import pandas as pd
+import boto3
 
 pd.set_option('display.max_rows', None)
 
 coinbase_pro = ccxt.coinbasepro()
 coinbase = ccxt.coinbase()
+
+bucket_name = 'trade-store'
+
+s3 = boto3.resource('s3')
+
+
+def get_state(file_name):
+    try:
+        s3_object = s3.Object(bucket_name, file_name).get()
+        jsonFileReader = s3_object['Body'].read()
+        jsonDict = json.loads(jsonFileReader)
+    except Exception as e:
+        if e.response['Error']['Code'] == "NoSuchKey":
+            print("creating balance.json object")
+            s3.Object(bucket_name, file_name).put(
+                Body=json.dumps({"buying_power": 1000, "tokens": 0, "history": [], "token_price": 0, 'uptrend': False}))
+        else:
+            raise e
+    return jsonDict
+
+
+def previously_uptrend(state):
+    return state.get('uptrend')
+
+
+def get_buying_power(state):
+    return state.get('buying_power')
+
+
+def set_buying_power(state, amount):
+    state['buying_power'] = amount
+    return state
+
+
+def get_tokens(state):
+    return state.get('tokens')
+
+
+def set_tokens(state, amount):
+    state['tokens'] = amount
+    return state
+
+
+def get_current_token_balance(state, token_price):
+    return get_tokens(state) * token_price
+
+
+def push_history(state, timestamp, buying_power, tokens, token_price):
+    if state.get('history') is None:
+        state['history'] = []
+    state['history'].append({'timestamp': timestamp, 'buying_power': buying_power,
+                            'tokens': tokens, 'token_price': token_price})
+    return state
+
+
+def signal(state, df):
+    currently_uptrend = df.iloc[-1]['uptrend']
+    if currently_uptrend and not previously_uptrend(state):
+        return 'buy'
+    elif not currently_uptrend and previously_uptrend(state):
+        return 'sell'
+    else:
+        return 'hold'
+
+
+def exec_buy(state, num_tokens, conversion):
+    state['tokens'] = state.get("tokens") + num_tokens
+    state['amount'] = state.get("amount") - (num_tokens * conversion)
+    return state
+
+
+def exec_sell(state, num_tokens, conversion):
+    state['tokens'] = state.get("tokens") - num_tokens
+    state['amount'] = state.get("amount") + (num_tokens * conversion)
+    return state
+
+
+def save_state(state, file_name):
+    s3.Object(bucket_name, file_name).put(
+        Body=json.dumps(state))
+
+
+def current_token_price(df):
+    return df.iloc[-1]['close']
+
+
+def current_timestamp(df):
+    return df.iloc[-1]['timestamp']
+
+
+def run_strategy(state_file_name, period=7, limit=100, timeframe='15m', multiplier=3):
+    state = get_state(state_file_name)
+    df = supertrend(period, limit, timeframe, multiplier)
+    signal = signal(state, df)
+    token_price = current_token_price(df)
+    buying_power = get_buying_power(state)
+    tokens = get_tokens(state)
+    if signal == 'buy':
+        balance_in_tokens = buying_power / token_price
+        buy_amount = balance_in_tokens * 0.1
+        state = exec_buy(state, buy_amount, token_price)
+    elif signal == 'sell':
+        sell_amount = tokens * 0.1
+        state = exec_sell(state, sell_amount, token_price)
+
+    if signal == 'buy' or signal == 'sell':
+        state = push_history(state, current_timestamp(df),
+                             buying_power, tokens, token_price)
+        save_state(state, state_file_name)
+
+    return {
+        'signal': signal,
+        'buying_power': get_buying_power(state),
+        'tokens': get_tokens(state),
+    }
 
 
 def supertrend(period=7, limit=10, timeframe='15m', multiplier=3):
@@ -50,11 +166,19 @@ def supertrend(period=7, limit=10, timeframe='15m', multiplier=3):
     return df
 
 
-print(supertrend(7, 200, '1h', 2))
+def run_per_1h(event, context):
+    body = run_strategy('state_7-200-1h-2.json', 7, 200, '1h', 2)
 
-
-def run(event, context):
     return {
         'statusCode': 200,
-        'body': json.dumps(str(supertrend(7, 200, '1h', 2)))
+        'body': body
+    }
+
+
+def run_per_1m(event, context):
+    body = run_strategy('state_7-200-1m-2.json', 7, 200, '1m', 2)
+
+    return {
+        'statusCode': 200,
+        'body': body
     }
