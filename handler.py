@@ -50,15 +50,27 @@ def set_tokens(state, amount):
     return state
 
 
-def get_current_token_balance(state, token_price):
-    return get_tokens(state) * token_price
+def get_token_price(state):
+    return state.get('token_price')
 
 
-def push_history(state, timestamp, buying_power, tokens, token_price):
+def set_token_price(state, token_price):
+    state['token_price'] = token_price
+    return state
+
+
+def get_state_snapshot(state):
+    return {
+        'buying_power': get_buying_power(state),
+        'tokens': get_tokens(state),
+        'token_price': get_token_price(state),
+    }
+
+
+def push_history(state, timestamp, snapshot):
     if state.get('history') is None:
         state['history'] = []
-    state['history'].append({'timestamp': timestamp, 'buying_power': buying_power,
-                            'tokens': tokens, 'token_price': token_price})
+    state['history'].append({'timestamp': timestamp, 'snapshot': snapshot})
     return state
 
 
@@ -112,6 +124,7 @@ def run_strategy(state_file_name, period=7, limit=100, timeframe='15m', multipli
     token_price = current_token_price(df)
     buying_power = get_buying_power(state)
     tokens = get_tokens(state)
+    state_snapshot = get_state_snapshot(state)
     if signal == 'buy':
         balance_in_tokens = buying_power / token_price
         buy_amount = balance_in_tokens * 0.1
@@ -123,8 +136,8 @@ def run_strategy(state_file_name, period=7, limit=100, timeframe='15m', multipli
     if signal == 'buy' or signal == 'sell':
         buying_power = get_buying_power(state)
         tokens = get_tokens(state)
-        state = push_history(state, current_timestamp(df),
-                             buying_power, tokens, token_price)
+        state = push_history(set_token_price(state, token_price),
+                             current_timestamp(df), state_snapshot)
         save_state(state, state_file_name)
 
     return {
