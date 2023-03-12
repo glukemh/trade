@@ -119,7 +119,7 @@ def current_timestamp(df):
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def run_strategy(state_file_name, period=7, limit=100, timeframe='15m', multiplier=3):
+def run_strategy(state_file_name, buy_sell_fraction=0.2, period=7, limit=100, timeframe='15m', multiplier=3):
     state = get_state(state_file_name)
     df = supertrend(period, limit, timeframe, multiplier)
     signal = get_signal(state, df)
@@ -129,10 +129,10 @@ def run_strategy(state_file_name, period=7, limit=100, timeframe='15m', multipli
     state_snapshot = get_state_snapshot(state)
     if signal == 'buy':
         balance_in_tokens = buying_power / token_price
-        buy_amount = balance_in_tokens * 0.1
+        buy_amount = balance_in_tokens * buy_sell_fraction
         state = exec_buy(set_uptrend(state, True), buy_amount, token_price)
     elif signal == 'sell':
-        sell_amount = tokens * 0.1
+        sell_amount = tokens * buy_sell_fraction
         state = exec_sell(set_uptrend(state, False), sell_amount, token_price)
 
     if signal == 'buy' or signal == 'sell':
@@ -191,8 +191,8 @@ def supertrend(period=7, limit=10, timeframe='15m', multiplier=3):
     return df
 
 
-def run_per_1h(event, context):
-    body = run_strategy('state_7-200-1h-2.json', 7, 200, '1h', 2)
+def run_1h_at_10(event, context):
+    body = run_strategy('state_7-200-1h-2.json', 0.1, 7, 200, '1h', 2)
 
     return {
         'statusCode': 200,
@@ -200,8 +200,26 @@ def run_per_1h(event, context):
     }
 
 
-def run_per_1m(event, context):
-    body = run_strategy('state_7-200-1m-2.json', 7, 200, '1m', 2)
+def run_1h_at_95(event, context):
+    body = run_strategy('state_95-7-200-1h-2.json', 0.95, 7, 200, '1h', 2)
+
+    return {
+        'statusCode': 200,
+        'body': body
+    }
+
+
+def run_1m_at_10(event, context):
+    body = run_strategy('state_7-200-1m-2.json', 0.1, 7, 200, '1m', 2)
+
+    return {
+        'statusCode': 200,
+        'body': body
+    }
+
+
+def run_1m_at_95(event, context):
+    body = run_strategy('state_95-7-200-1m-2.json', 0.95, 7, 200, '1m', 2)
 
     return {
         'statusCode': 200,

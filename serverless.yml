@@ -40,14 +40,28 @@ package:
 
 functions:
   tradePerHour:
-    handler: handler.run_per_1h
+    handler: handler.run_1h_at_10
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
+    memorySize: 512
+    events:
+      - schedule: rate(1 hour)
+  tradePerHourAt95:
+    handler: handler.run_1h_at_95
     layers:
       - Ref: PythonRequirementsLambdaLayer
     memorySize: 512
     events:
       - schedule: rate(1 hour)
   tradePerMinute:
-    handler: handler.run_per_1m
+    handler: handler.run_1m_at_10
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
+    memorySize: 512
+    events:
+      - schedule: rate(1 minute)
+  tradePerMinuteAt95:
+    handler: handler.run_1m_at_95
     layers:
       - Ref: PythonRequirementsLambdaLayer
     memorySize: 512
