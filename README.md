@@ -17,106 +17,40 @@ Python function to automate trading with AWS Lambda and Serverless Framework wit
 
 ## Setup
 
-Using wsl with Amazon Linux 2 to develop and deploy will ensure all packaged dependencies will work properly in Lambda.
+Docker and serverless are needed for deployment.
 
-### Install Amazon Linux 2
+### Docker
 
-Download
-
-```powershell
-> Invoke-WebRequest -Uri https://github.com/yosukes-dev/AmazonWSL/releases/download/2.0.20200722.0-update.2/Amazon2.zip -OutFile $env:TMP\Amazon2.zip
-```
-
-Extract
+Install docker (Windows)
 
 ```powershell
-> Expand-Archive -Path $env:TMP\Amazon2.zip -DestinationPath C:\WSL\Amazon2
+winget install Docker.DockerDesktop
 ```
 
-Install
+Windows may need to be restarted after installation.
+
+### Serverless
+
+Install serverless
 
 ```powershell
-> C:\WSL\Amazon2\Amazon2.exe
-```
-
-Run
-
-```powershell
-> wsl -d Amazon2
-```
-
-### Setup Amazon Linux 2
-
-After running Amazon Linux 2, finish setting up by installing Python, Nodejs, and Serverless.
-
-First update linux environment
-
-```bash
-$ yum upgrade -y && yum update -y
-```
-
-Install Python 3.8
-
-```bash
-$ amazon-linux-extras install python3.8
-```
-
-Install Node.js Dependencies
-
-```bash
-$ yum install gcc-c++ make
-```
-
-Install Node.js
-
-```bash
-$ curl -sL https://rpm.nodesource.com/setup_16.x | bash -
-```
-
-```
-$ yum install nodejs
-```
-
-Install Serverless Framework
-
-```bash
-$ npm install -g serverless
+npm install -g serverless
 ```
 
 ### Setup Repo
 
-Clone this repository
+Install npm packages/plugins for serverless
 
-Create a virtual environment for this repo
-
-```bash
-$ python3.8 -m venv .
-```
-
-Activate the virtual environment
-
-```bash
-$ source bin/activate
-```
-
-Install pip packages
-
-```bash
-$ pip install -r requirements.txt
-```
-
-Install npm packages for serverless
-
-```bash
-$ npm install
+```powershell
+npm install
 ```
 
 ## Deploy
 
 After setting up serverless credentials you can deploy with:
 
-```bash
-$ serverless deploy
+```powershell
+serverless deploy
 ```
 
 ## Serverless YML
