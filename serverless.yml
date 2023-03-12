@@ -2,30 +2,54 @@ service: trade
 
 frameworkVersion: "3"
 
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    layer: true
+    dockerizePip: true
+    useDownloadCache: false
+    useStaticCache: false
+    slim: true
+
 provider:
   name: aws
   runtime: python3.8
+  deploymentMethod: direct
   iam:
     role:
       statements:
         # Allow functions to read/write objects in a bucket
         - Effect: Allow
           Action:
+            - "s3:ListBucket"
+          Resource: "arn:aws:s3:::trade-store"
+        - Effect: Allow
+          Action:
             - "s3:GetObject"
             - "s3:PutObject"
-          Resource: "arn:aws:s3:::trade-store"
+          Resource: "arn:aws:s3:::trade-store/*"
+
+package:
+  patterns:
+    - "!node_modules/**"
+    - "!venv/**"
+    - "!bin/**"
+    - "!lib/**"
 
 functions:
   tradePerHour:
     handler: handler.run_per_1h
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
     memorySize: 512
     events:
       - schedule: rate(1 hour)
   tradePerMinute:
     handler: handler.run_per_1m
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
     memorySize: 512
     events:
       - schedule: rate(1 minute)
-
-plugins:
-  - serverless-python-requirements
