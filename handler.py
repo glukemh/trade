@@ -20,7 +20,7 @@ def get_state(file_name):
         jsonDict = json.loads(jsonFileReader)
     except Exception as e:
         if e.response['Error']['Code'] == "NoSuchKey":
-            print("creating balance.json object")
+            print(f"creating {file_name} object")
             s3.Object(bucket_name, file_name).put(
                 Body=json.dumps({"buying_power": 1000, "tokens": 0, "history": [], "token_price": 0, 'uptrend': False}))
         else:
@@ -62,7 +62,7 @@ def push_history(state, timestamp, buying_power, tokens, token_price):
     return state
 
 
-def signal(state, df):
+def get_signal(state, df):
     currently_uptrend = df.iloc[-1]['uptrend']
     if currently_uptrend and not previously_uptrend(state):
         return 'buy'
@@ -72,15 +72,22 @@ def signal(state, df):
         return 'hold'
 
 
+def set_uptrend(state, uptrend):
+    state['uptrend'] = uptrend
+    return state
+
+
 def exec_buy(state, num_tokens, conversion):
     state['tokens'] = state.get("tokens") + num_tokens
-    state['amount'] = state.get("amount") - (num_tokens * conversion)
+    state['buying_power'] = state.get(
+        "buying_power") - (num_tokens * conversion)
     return state
 
 
 def exec_sell(state, num_tokens, conversion):
     state['tokens'] = state.get("tokens") - num_tokens
-    state['amount'] = state.get("amount") + (num_tokens * conversion)
+    state['buying_power'] = state.get(
+        "buying_power") + (num_tokens * conversion)
     return state
 
 
@@ -94,33 +101,36 @@ def current_token_price(df):
 
 
 def current_timestamp(df):
-    return df.iloc[-1]['timestamp']
+    timestamp = df.iloc[-1]['timestamp']
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def run_strategy(state_file_name, period=7, limit=100, timeframe='15m', multiplier=3):
     state = get_state(state_file_name)
     df = supertrend(period, limit, timeframe, multiplier)
-    signal = signal(state, df)
+    signal = get_signal(state, df)
     token_price = current_token_price(df)
     buying_power = get_buying_power(state)
     tokens = get_tokens(state)
     if signal == 'buy':
         balance_in_tokens = buying_power / token_price
         buy_amount = balance_in_tokens * 0.1
-        state = exec_buy(state, buy_amount, token_price)
+        state = exec_buy(set_uptrend(state, True), buy_amount, token_price)
     elif signal == 'sell':
         sell_amount = tokens * 0.1
-        state = exec_sell(state, sell_amount, token_price)
+        state = exec_sell(set_uptrend(state, False), sell_amount, token_price)
 
     if signal == 'buy' or signal == 'sell':
+        buying_power = get_buying_power(state)
+        tokens = get_tokens(state)
         state = push_history(state, current_timestamp(df),
                              buying_power, tokens, token_price)
         save_state(state, state_file_name)
 
     return {
         'signal': signal,
-        'buying_power': get_buying_power(state),
-        'tokens': get_tokens(state),
+        'buying_power': buying_power,
+        'tokens': tokens,
     }
 
 
