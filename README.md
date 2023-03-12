@@ -37,6 +37,12 @@ Install serverless
 npm install -g serverless
 ```
 
+Add AWS credentials to serverless
+
+```powershell
+serverless config credentials
+```
+
 ### Setup Repo
 
 Install npm packages/plugins for serverless
