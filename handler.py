@@ -17,15 +17,17 @@ def get_state(file_name):
     try:
         s3_object = s3.Object(bucket_name, file_name).get()
         jsonFileReader = s3_object['Body'].read()
-        jsonDict = json.loads(jsonFileReader)
+        state = json.loads(jsonFileReader)
     except Exception as e:
         if e.response['Error']['Code'] == "NoSuchKey":
             print(f"creating {file_name} object")
+            state = {"buying_power": 1000, "tokens": 0,
+                     "history": [], "token_price": 0, 'uptrend': False}
             s3.Object(bucket_name, file_name).put(
-                Body=json.dumps({"buying_power": 1000, "tokens": 0, "history": [], "token_price": 0, 'uptrend': False}))
+                Body=json.dumps(state))
         else:
             raise e
-    return jsonDict
+    return state
 
 
 def previously_uptrend(state):
